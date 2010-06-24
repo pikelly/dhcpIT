@@ -18,9 +18,7 @@ module DHCP
     end
 
     def subnets
-      if @subnets.size == 0
-        loadSubnets
-      end
+      loadSubnets if @subnets.size == 0
       return @subnets
     end
 
@@ -41,7 +39,7 @@ module DHCP
 
     # Adds a Subnet to a server object
     def add_subnet subnet
-      logger.debug "adding subnet #{subnet} to #{subnet.server}"
+      logger.debug "adding subnet #{subnet} to #{name}"
       if find_subnet(subnet.network).nil?
         @subnets << validate_subnet(subnet)
         logger.debug "added #{subnet} to #{name}"
