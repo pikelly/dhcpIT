@@ -1,6 +1,5 @@
 module DHCP;
   require "dhcp/log"
-  require "dhcp/storage"
   require "dhcp/record"
   require "dhcp/server"
   class Error < RuntimeError; end
