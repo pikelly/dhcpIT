@@ -4,12 +4,19 @@ require "dhcp/record"
 module DHCP
   # represents a DHCP Server
   class Server
+    @@subnets = []
     attr_reader :name
     alias_method :to_s, :name
 
     include DHCP
     include DHCP::Log
     include DHCP::Validations
+
+    # The library will probably be accessed via this class method from foreman
+    # Foreman does not want to know much about servers
+    def self.[] subnet
+      @@subnets.find{ |s| s.include? subnet }
+    end
 
     def initialize(name)
       @name = name
@@ -41,7 +48,8 @@ module DHCP
     def add_subnet subnet
       logger.debug "adding subnet #{subnet} to #{name}"
       if find_subnet(subnet.network).nil?
-        @subnets << validate_subnet(subnet)
+        @subnets  << validate_subnet(subnet)
+        @@subnets << subnet unless @@subnets.map(&:network).include?(subnet.network)
         logger.debug "added #{subnet} to #{name}"
         return true
       end
@@ -55,7 +63,7 @@ module DHCP
 
     def find_record record
       if subnet = find_subnet(record)
-        return subnet.find_record record
+        return subnet[record]
       end
     end
 

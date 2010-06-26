@@ -1,10 +1,11 @@
 module DHCP
   class ISC < DHCP::Server
 
-    def initialize name, config, leases
-      super(name)
-      @config = config
-      @leases = leases
+    def initialize options = {}
+      super(options[:name])
+      @config = File.read options[:config]
+      @leases = File.read options[:leases]
+      loadSubnets
     end
 
     def delRecord subnet, record

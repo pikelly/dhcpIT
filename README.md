@@ -20,9 +20,9 @@ DHCP Servers API written in ruby
 require 'dhcp'
 require 'dhcp/server/isc'
 
-config=File.read("/etc/dhcp3/dhcpd.conf")
-leases=File.read("/var/lib/dhcp3/dhcpd.leases")
-server="127.0.0.1"
+config = "/etc/dhcp3/dhcpd.conf"
+leases = "/var/lib/dhcp3/dhcpd.leases"
+server = "127.0.0.1"
 
 server=DHCP::ISC.new(server, config, leases)
 server.subnets # array of Subnets

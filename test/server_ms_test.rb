@@ -11,8 +11,7 @@ class DHCPServerMicrosoftTest < Test::Unit::TestCase
     dhcpSrv  = "server"
 
     #UGLY workaround for now
-    @server = @@server ||= DHCP::Server::MS.new({:username => username, :password => password,
-                                                :gateway => gateway, :server => dhcpSrv})
+    @server = @@server ||= DHCP::Server::MS.new(:gateway => gateway, :server => dhcpSrv, :data => {:username => username, :password => password})
   end
 
   def find_subnet

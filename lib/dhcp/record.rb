@@ -23,9 +23,5 @@ module DHCP
       "#{ip} / #{mac}"
     end
 
-    def inspect
-      self
-    end
-
   end
 end

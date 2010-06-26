@@ -22,13 +22,6 @@ module DHCP
       super()
     end
 
-    def find_record value
-      ip = value.ip          if value.is_a? DHCP::Record
-      ip = value.to_s        if value.is_a? IPAddr
-      ip ||= value
-      values.find { |v| ip == v.ip }
-    end
-
     def include? value
       ip = IPAddr.new(value) if value.is_a? String
       ip = value.ip          if value.is_a? DHCP::Record
@@ -50,9 +43,12 @@ module DHCP
       @loaded
     end
 
-    def [] ip
+    def [] value
+      ip = value.ip          if value.is_a? DHCP::Record
+      ip = value.to_s        if value.is_a? IPAddr
+      ip ||= value
       server.loadSubnetData(self) unless loaded?
-      super
+      super ip
     end
 
     def records
@@ -108,9 +104,9 @@ module DHCP
       IPAddr.new(to_s).to_range.to_a[1..-2]
     end
 
-    def inspect
-      self
-    end
+    #def inspect
+    #  self
+    #end
 
   end
 end

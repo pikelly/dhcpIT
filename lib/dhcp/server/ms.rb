@@ -5,9 +5,16 @@ module DHCP
 
     def initialize(options = {})
       super options[:server]
-      @username = options[:username]
-      @password = options[:password]
       @gateway  = options[:gateway]
+      user_data options[:data]
+      loadSubnets
+    end
+
+    def user_data data
+      @username = data[:username]
+      @password = data[:password]
+      @denied   = data[:denied]
+      self
     end
 
     def loadSubnets

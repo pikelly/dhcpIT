@@ -1,3 +1,9 @@
+$: << "../foreman/vendor/rails/activesupport/lib/"
+$: << "../foreman/vendor/rails/activesupport/lib/active_support/vendor/memcache-client-1.7.4"
+$: << "../foreman/vendor/rails/activesupport/lib/active_support/vendor/builder-2.1.2"
+require "active_support/core_ext"
+require "active_support/cache"
+
 require 'test/test_helper'
 
 class DHCPServerTest < Test::Unit::TestCase
@@ -50,7 +56,7 @@ class DHCPServerTest < Test::Unit::TestCase
     assert_equal @record, @server.find_record(ip)
   end
 
-  def test_should_retrun_nil_when_no_subnet
+  def test_should_return_nil_when_no_subnet
     subnet = @server.find_subnet IPAddr.new "1.20.76.0"
     assert_nil subnet
   end
@@ -59,4 +65,22 @@ class DHCPServerTest < Test::Unit::TestCase
     assert !@server.name.nil?
   end
 
+  def test_should_find_global_subnet
+    @server2 = DHCP::Server.new("testcase2")
+    @subnet2 = DHCP::Subnet.new(@server, "192.168.1.0", "255.255.255.0")
+
+    net1 = DHCP::Server["192.168.1.0"]
+    net2 = DHCP::Server["192.168.0.0"]
+    assert_kind_of DHCP::Subnet, net1
+    assert_kind_of DHCP::Subnet, net2
+    assert net1 != net2
+  end
+
+  def test_should_support_caching
+    cache = ActiveSupport::Cache::MemCacheStore.new "localhost"
+    cache.clear
+    cache.write("servers", @server)
+    @recovered = cache.fetch("servers")
+    assert_equal @subnet["192.168.0.11"].mac, @recovered.find_subnet("192.168.0.0")["192.168.0.11"].mac
+  end
 end
