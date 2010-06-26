@@ -4,9 +4,9 @@ require 'dhcp/validations'
 
 module DHCP
   # Represents a DHCP Subnet
-  class Subnet
+  class Subnet < Hash
     attr_reader :network, :netmask, :server
-    attr_accessor :options
+    attr_accessor :options, :loaded
 
     include DHCP
     include DHCP::Log
@@ -17,12 +17,23 @@ module DHCP
       @network = validate_ip network
       @netmask = validate_ip netmask
       @options = {}
-      @records = {}
+      @loaded  = false
       raise DHCP::Error, "unable to Add Subnet" unless @server.add_subnet(self)
+      super()
     end
 
-    def include? ip
-      IPAddr.new(to_s).include?(ip.is_a?(IPAddr) ? ip : IPAddr.new(ip))
+    def find_record value
+      ip = value.ip          if value.is_a? DHCP::Record
+      ip = value.to_s        if value.is_a? IPAddr
+      ip ||= value
+      values.find { |v| ip == v.ip }
+    end
+
+    def include? value
+      ip = IPAddr.new(value) if value.is_a? String
+      ip = value.ip          if value.is_a? DHCP::Record
+      ip ||= value
+      IPAddr.new(to_s).include?( ip )
     end
 
     def to_s
@@ -34,44 +45,36 @@ module DHCP
       "#{r.first.to_s}-#{r.last.to_s}"
     end
 
-    def clear
-      @records = {}
-    end
-
     def loaded?
-      size > 0
+      # It is quite possible that a subnet contains no leases so size == 0 will not do.
+      @loaded
     end
 
-    def size
-      records.count
+    def [] ip
+      server.loadSubnetData(self) unless loaded?
+      super
     end
 
     def records
-      if @records.size == 0
-        server.loadSubnetData self
-        logger.debug "lazy loaded #{to_s} records"
-      end
-      @records.values
-    end
-
-    def [] record
-      @records[record]
+      server.loadSubnetData(self) unless loaded?
+      values
     end
 
     def has_mac? mac
-      @records.keys.each {|m| return true if m == mac.downcase }
-      return false
+      values.detect {|record| record.mac == mac.downcase }
     end
 
     # adds a record to a subnet
-    def add_record record
-      unless has_mac? record.mac
-        @records[record.ip] = record
-        logger.debug"Added #{record} to #{to_s}"
-        return true
+    def []= ip, record
+      if has_mac? record.mac
+        logger.warn "Record #{record} already exists in #{to_s} - can't add"
+        return false
       end
-      logger.warn "Record #{record} already exists in #{to_s} - can't add"
-      return false
+      super
+    end
+
+    def add_record record
+      self[record.ip] = record
     end
 
     # returns the next unused IP Address in a subnet
@@ -96,10 +99,8 @@ module DHCP
       end
     end
 
-    def delete record
-      if @records.delete_if{|k,v| v == record}.nil?
-        raise DHCP::Error, "Removing a DHCP Record which doesn't exists"
-      end
+    def delete_record record
+      raise DHCP::Error, "Removing a DHCP Record which doesn't exists" unless delete record.ip
     end
 
     def valid_range

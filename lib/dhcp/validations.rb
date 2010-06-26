@@ -6,13 +6,13 @@ module DHCP::Validations
   # validates the ip address
   def validate_ip ip
     raise Error, "Invalid IP Address #{ip}" unless ip =~ /(\d{1,3}\.){3}\d{1,3}/
-      ip
+    ip
   end
 
   # validates the mac
   def validate_mac mac
     raise Error, "Invalid MAC #{mac}" unless mac =~ /([a-f0-9]{1,2}:){5}[a-f0-9]{1,2}/
-      mac
+    mac
   end
 
   def validate_subnet subnet

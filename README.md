@@ -25,7 +25,7 @@ leases=File.read("/var/lib/dhcp3/dhcpd.leases")
 server="127.0.0.1"
 
 server=DHCP::ISC.new(server, config, leases)
-servers.subnets # array of Subnets
+server.subnets # array of Subnets
 
 subnet = server.find_subnet "192.168.0.0"
 subnet.records # array or records

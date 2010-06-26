@@ -11,31 +11,24 @@ module DHCP
       validate_subnet subnet
       validate_record record
 
-      omcmd "connect"
-      omcmd "set hardware-address = #{record.mac}"
-      omcmd "open"
-      omcmd "remove"
-      if omcmd("disconnect")
+      if execute {
+        omcmd "set hardware-address = #{record.mac}"
+        omcmd "open"
+        omcmd "remove" }
+      then
         logger.info "removed DHCP reservation for #{record}"
-        subnet.delete record
+        subnet.delete_record record
         return true
       end
     end
 
     def addRecord options = {}
-      msg = []
       ip = validate_ip options[:ip]
       mac = validate_mac options[:mac]
       raise DHCP::Error, "Must provide host-name" unless options[:name]
       name = options[:name]
       raise DHCP::Error, "Already exists" if find_record(ip)
       raise DHCP::Error, "Unknown subnet for #{ip}" unless subnet = find_subnet(IPAddr.new(ip))
-
-      omcmd "connect"
-      omcmd "set name = \"#{name}\""
-      omcmd "set ip-address = #{ip}"
-      omcmd "set hardware-address = #{mac}"
-      omcmd "set hardware-type = 1"         # This is ethernet
 
       # TODO: Extract this block into a generic dhcp options helper
       statements = []
@@ -49,14 +42,18 @@ module DHCP
         statements << "option host-name = \\\"#{name}\\\";"
       end
 
-      omcmd "set statements = \"#{statements.join(" ")}\"" unless statements.empty?
-      omcmd "create"
-      if omcmd("disconnect")
+      if execute {
+        omcmd "set name = \"#{name}\""
+        omcmd "set ip-address = #{ip}"
+        omcmd "set hardware-address = #{mac}"
+        omcmd "set hardware-type = 1"         # This is ethernet
+        omcmd "set statements = \"#{statements.join(" ")}\"" unless statements.empty?
+        omcmd "create" }
+      then
         logger.info "created DHCP reservation for #{name} @ #{ip}/#{mac}"
         DHCP::Record.new(subnet, ip, mac)
         return true
       end
-      return false
     end
 
     def loadSubnetData subnet
@@ -71,7 +68,7 @@ module DHCP
             opts.merge!(parse_record_options(data[0]))
           end
           if opts[:deleted]
-            subnet.delete find_record_by_title(subnet, title)
+            subnet.delete_record find_record_by_title(subnet, title)
             next
           end
         end
@@ -90,9 +87,17 @@ module DHCP
           DHCP::Record.new(subnet, opts[:ip], opts[:mac])
         end
       end
+      subnet.loaded = true
+      logger.debug "lazy loaded #{subnet.to_s} records"
     end
 
     private
+    def execute
+      omcmd "connect"
+      yield
+      omcmd "disconnect"
+    end
+
     def loadSubnets
       @config.each_line do |line|
         if line =~ /^\s*subnet\s+([\d\.]+)\s+netmask\s+([\d\.]+)/

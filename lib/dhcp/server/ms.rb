@@ -51,6 +51,7 @@ module DHCP
         end
       end
       super subnet
+      subnet.loaded = true
     end
 
 
@@ -81,7 +82,7 @@ module DHCP
 
       response = query cmd
       logger.info "removed DHCP reservation for #{entry}/#{mac}"
-      subnet.delete(record)
+      subnet.delete_record(record)
     end
 
     private

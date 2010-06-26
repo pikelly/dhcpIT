@@ -50,32 +50,21 @@ module DHCP
     end
 
     def find_subnet value
-      @subnets.each do |s|
-        return s if value.is_a?(String) and s.network == value
-        return s if value.is_a?(DHCP::Record) and s.include?(value.ip)
-        return s if value.is_a?(IPAddr) and s.include?(value)
-      end
-      return nil
+      @subnets.find{ |s| s.include? value }
     end
 
     def find_record record
-      @subnets.each do |s|
-        s.records.each do |v|
-          return v if record.is_a?(String) and v.ip == record
-          return v if record.is_a?(DHCP::Record) and v == record
-          return v if record.is_a?(IPAddr) and v.ip == record.to_s
-        end
+      if subnet = find_subnet(record)
+        return subnet.find_record record
       end
-      return nil
     end
 
     def inspect
       self
     end
 
-
     def delRecord subnet, record
-      subnet.delete record
+      subnet.delete_record record
     end
 
   end
